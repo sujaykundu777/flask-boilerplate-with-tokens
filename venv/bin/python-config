@@ -1,4 +1,4 @@
-#!/home/sujaykundu777/Projects/flask-cookiecutter/venv/bin/python
+#!/home/sujaykundu777/Projects/flask-boilerplate/venv/bin/python
 
 import sys
 import getopt

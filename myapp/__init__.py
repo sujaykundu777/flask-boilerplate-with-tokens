@@ -7,4 +7,4 @@ app.config.from_pyfile('config.py')
 
 db = SQLAlchemy(app)
 
-from myapp import views
+from myapp import routes
