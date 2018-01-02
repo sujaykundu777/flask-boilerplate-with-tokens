@@ -1,25 +1,51 @@
 # flask-boilerplate
 A boilerplate for flask app with token based authentication
 
-# Run the Seeder
+## Instructions
+
+clone the Repo :
+
+$ git clone https://gitlab.com/skillenza/interns/flask-boilerplate.git
+
+Setup virtual environment to use python3.6 for the project
+
+Install virtual environment
+
+$ sudo apt-get install python-virtualenv
+
+Virtualenv is installed. Now to use it for my project:
+
+$ cd flask-boilerplate
+$ virtualenv -p python3.6 venv --no-site-packages
+
+This will create a venv folder and activate python3.6 for my project. To check:
+
+$ python -V Python 3.6.3
+$ pip -V pip 9.0.1
+
+Install all the required python plugins using pip using the requirements.txt
+
+$ pip install -r requirements.txt
+
+Run the Seeder for setting the initial database tables
 
 $ python seeder.py
 
 Request Authentication
 
-# Signup
+Signup
 
 curl -i -X POST -H 'Content-Type: application/json' \
-    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:3000/signup'
+    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:5000/signup'
 
-# Signin
+Signin
 
 curl -i -X POST -H 'Content-Type: application/json'  \
-    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:3000/signin'
+    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:5000/signin'
 
-# Profile
+Profile
 
 It requires a access_token to get details of a user profile details
 
-curl -i -X GET -H 'token: 12d06361-046f-4388-a699-c8012db4b4e7' \
-'http://0.0.0.0:3000/profile'
+curl -i -X GET -H 'token: 419c359f-5cec-4c4f-a43e-34549dde88b2' \
+'http://0.0.0.0:5000/profile'
