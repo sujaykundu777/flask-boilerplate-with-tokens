@@ -1,5 +1,5 @@
 from myapp import app
-from flask import request, jsonify, g, abort
+from flask import request, jsonify, g, abort, send_file
 from myapp.models import db, User, Token
 from functools import wraps
 import bcrypt
@@ -23,9 +23,9 @@ def requires_authorization(f):
     return decorated
 
 
-@app.route('/')
-def hello_world():
-    return jsonify({'Home': 'Hello World'})
+@app.route("/")
+def index():
+    return send_file("templates/index.html")
 
 
 @app.route('/profile', methods=['GET'])
