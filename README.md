@@ -43,13 +43,13 @@ Signup
 
 ```
 $ curl -i -X POST -H 'Content-Type: application/json' \
-    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:5000/signup'
+    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:5000/api/signup'
 ```
 Signin
 
 ```
 $ curl -i -X POST -H 'Content-Type: application/json'  \
-    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:5000/signin'
+    --data '{"email":"john2@example.com", "password":"123456"}' 'http://0.0.0.0:5000/api/signin'
 ```
 
 Signing in successfully will return a token. This can be used to visit authenticated routes

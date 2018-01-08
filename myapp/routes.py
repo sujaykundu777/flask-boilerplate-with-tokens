@@ -1,5 +1,5 @@
 from myapp import app
-from flask import request, jsonify, g, abort, send_file
+from flask import request, jsonify, g, abort, render_template, session
 from myapp.models import db, User, Token
 from functools import wraps
 import bcrypt
@@ -23,9 +23,10 @@ def requires_authorization(f):
     return decorated
 
 
-@app.route("/")
-def index():
-    return send_file("templates/index.html")
+@app.route('/', defaults={'path': ''},  methods=['GET', 'POST'])
+@app.route('/<path:path>', methods=['GET', 'POST'])
+def index(path):
+    return render_template('index.html')
 
 
 @app.route('/profile', methods=['GET'])
@@ -40,30 +41,33 @@ def created():
     print (g.user.__dict__)
     return jsonify({'data': g.user.created_at})
 
+# Login API
 
-@app.route('/signin', methods=['POST'])
+
+@app.route('/api/signin', methods=['POST'])
 def signin():
     json_data = request.json
     user = User.query.filter_by(email=json_data['email']).first()
     password = json_data['password']
     if user:
-        print('User Exists')
         saved_hashed_password = user.password
         if bcrypt.checkpw(password.encode('utf8'), saved_hashed_password):
-            status = True
+            status = 'Login Successful'
+            session['logged_in'] = True
             token = Token(user_id=user.id)
             db.session.add(token)
             db.session.commit()
-            return jsonify({'token': token.value})
+            return jsonify({'status': status, 'token': token.value})
         else:
             status = 'Password Incorrect'
     else:
-        print('User Do Not Exist')
-        status = False
-    return jsonify({'Success': status})
+        status = 'Login Error, User Do Not Exist'
+    return jsonify({'success': status})
+
+# Register API
 
 
-@app.route('/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
 def signup():
     print ('data', request.data)
     print ('args', request.args)
@@ -81,3 +85,9 @@ def signup():
         status = 'This user is already registered'
         return jsonify({'error': str(e)})
     return jsonify({'Success': status})
+
+
+@app.route('/api/logout')
+def logout():
+    session.pop('logged_in', None)
+    return jsonify({'result': 'success'})
