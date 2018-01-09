@@ -80,11 +80,11 @@ def signup():
     try:
         db.session.add(user)
         db.session.commit()
-        status = True
+        status = 'User Registered'
     except Exception as e:
         status = 'This user is already registered'
         return jsonify({'error': str(e)})
-    return jsonify({'Success': status})
+    return jsonify({'status': status})
 
 
 @app.route('/api/logout')
