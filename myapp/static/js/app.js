@@ -22,6 +22,9 @@ myApp.config(['$routeProvider', '$locationProvider',
     when('/profile', {
       templateUrl: 'static/partials/user/profile.html'
     }).
+    when('/admin',{
+      templateUrl: 'static/partials/admin/dashboard.html'
+    })
     otherwise({
       redirectTo: '/'
     });
@@ -38,7 +41,6 @@ myApp.controller('signinController', ['$scope','$http','$window',
         email: $scope.email,
         password: $scope.password
       }
-
       //send post request to our signin api
       $http.post('/api/signin', $scope.userinput)
         .then(function(data, status, headers, config){

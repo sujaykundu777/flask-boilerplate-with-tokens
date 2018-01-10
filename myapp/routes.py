@@ -4,6 +4,8 @@ from myapp.models import db, User, Token
 from functools import wraps
 import bcrypt
 
+# Check for authorization headers
+
 
 def requires_authorization(f):
     @wraps(f)
