@@ -52,7 +52,7 @@ myApp.config(['$routeProvider', '$locationProvider',
       }]);
 
 //Create Auth Factory
-myApp.service('AuthService', function($http, $sessionStorage){
+myApp.service('AuthService', function($http, $localStorage){
 
     this.Login = function(credentials) {
     console.log("Email: " + credentials.email, "Password: " + credentials.password);
@@ -60,8 +60,8 @@ myApp.service('AuthService', function($http, $sessionStorage){
         .post('http://localhost:3000/api/signin', credentials)
         .then(function(response, status, headers, config){
          //save the token recieved from the api and saved in sessionStorage
-         $sessionStorage.token = response.data.token;
-         console.log("Token recieved from API : " + $sessionStorage.token);
+         $localStorage.token = response.data.token;
+         console.log("Token recieved from API : " + $localStorage.token);
         })
         .catch(function activateError(error){
             console.log(error);
