@@ -1,6 +1,6 @@
 'use strict'; // See note about 'use strict'; below
 
-var myApp = angular.module('myApp', ['ngRoute','ngStorage']);
+var myApp = angular.module('myApp', ['ngRoute', 'ngStorage']);
 
 myApp.config(['$routeProvider', '$locationProvider',
   function($routeProvider, $locationProvider) {
@@ -19,6 +19,9 @@ myApp.config(['$routeProvider', '$locationProvider',
       templateUrl: 'static/partials/auth/signup.html',
       controller: "signupController"
     }).
+    when('/dashboard', {
+      templateUrl: 'static/partials/admin/dashboard.html'
+    }).
     when('/profile', {
       templateUrl: 'static/partials/user/profile.html'
     }).
@@ -30,7 +33,7 @@ myApp.config(['$routeProvider', '$locationProvider',
 ]);
 
 //Authentication Service
-//1.saving the token in local storage
+//1.saving the token in local storage (Done)
 //2. reading the token from local Storage
 //3. deleting the token from local Storage
 //4. calling the register and login api end points
@@ -38,55 +41,102 @@ myApp.config(['$routeProvider', '$locationProvider',
 //6. getting the details of the logged in user from the Token
 
 
-   //Controller to handle Signin
-    myApp.controller('signinController',['$scope','AuthService', function($scope, AuthService) {
-        //Call to signin
-        $scope.signin = function(){
-          $scope.credentials = {
-             email: $scope.email,
-             password: $scope.password
-          };
-          //call the authentication signin service
-          AuthService.Login($scope.credentials);
-        };
-      }]);
+//Controller to handle Signin
+myApp.controller('signinController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
 
-//Create Auth Factory
-myApp.service('AuthService', function($http, $localStorage){
+  //reset login status
+  AuthService.ClearCredentials();
 
-    this.Login = function(credentials) {
-    console.log("Email: " + credentials.email, "Password: " + credentials.password);
-        $http
-        .post('http://localhost:3000/api/signin', credentials)
-        .then(function(response, status, headers, config){
-         //save the token recieved from the api and saved in sessionStorage
-         $localStorage.token = response.data.token;
-         console.log("Token recieved from API : " + $localStorage.token);
-        })
-        .catch(function activateError(error){
-            console.log(error);
-        });
+  //Call to signin
+  $scope.signin = function() {
+    $scope.credentials = {
+      email: $scope.email,
+      password: $scope.password
     };
-
-});
-
-
+    //call the authentication signin service
+    AuthService.Login($scope.credentials, function(result) {
+      if (result === true) {
+        console.log('Logged in Successful');
+        //redirect the user to profile page
+        $location.path('/profile');
+      } else {
+        console.log('Login Error');
+        $location.path('/signin');
+      }
+    });
+  };
+}]);
 
 //Controller to handle signup
-myApp.controller('signupController', ['$scope','$http',
-   function($scope, $http){
-     $scope.signup = function signup(){
-        //save the input from the signup form
-        $scope.userinput = {
-          email: $scope.email,
-          password: $scope.password
-        };
-        //send post request to our signup
-        $http.post('/api/signup', $scope.userinput)
-          .then(function(data, status, headers, config){
-              //save the user
-              console.log("Status :" + data.data.status);
-          });
-     };
-   }
-]);
+myApp.controller('signupController', ['$scope', 'AuthService', function($scope, AuthService) {
+  $scope.signup = function() {
+    //save the input from the signup form
+    $scope.credentials = {
+      email: $scope.email,
+      password: $scope.password
+    };
+    //call the authentication signup service
+    AuthService.Register($scope.credentials);
+  };
+}]);
+
+//Create Auth Factory
+myApp.service('AuthService', function($http, $location, $localStorage) {
+
+  //for login
+  this.Login = function(credentials, callback) {
+    console.log("Email: " + credentials.email, "Password: " + credentials.password);
+    $http
+      .post('/api/signin', credentials)
+      .then(function(response, status, headers, config) {
+          //If token is received
+        if (response.data.token) {
+
+          //save the user details and token in localStorage
+          $localStorage.currentUser = {
+            email: credentials.email,
+            token: response.data.token
+          };
+
+          // add auth token to auth header for all requests made by the $http service
+          $http.defaults.headers.common.Authorization = 'Bearer ' + response.data.token;
+
+          //execute callback with true for successful login
+          callback(true);
+        }
+          //If token is not recieved
+        else {
+          //execute callback for failed login for failed login
+          callback(false);
+        }
+      })
+      .catch(function activateError(error) {
+        console.log(error);
+      });
+  };
+
+  //for registration
+  this.Register = function(credentials) {
+    console.log("Email: " + credentials.email, "Password: " + credentials.password);
+    //send post request to our signup
+    $http
+      .post('/api/signup', credentials)
+      .then(function(response, status, headers, config) {
+        //save the user
+        console.log("Status :" + response.data.status);
+      });
+  };
+
+  //for clearing credentials
+  this.ClearCredentials = function() {
+    $localStorage.currentUser = '';
+  };
+
+  //to check if the user is logged in
+  this.isLoggedIn = function() {
+
+    //if the user is logged in access
+
+  }
+
+});
