@@ -1,6 +1,6 @@
 'use strict'; // See note about 'use strict'; below
 
-var myApp = angular.module('myApp', ['ngRoute', 'ngStorage']);
+var myApp = angular.module('myApp', ['ngRoute', 'ngStorage', 'ngCookies']);
 
 myApp.config(['$routeProvider', '$locationProvider',
   function($routeProvider, $locationProvider) {
@@ -25,6 +25,9 @@ myApp.config(['$routeProvider', '$locationProvider',
     when('/profile', {
       templateUrl: 'static/partials/user/profile.html'
     }).
+    when('/logout', {
+      controller: "logoutController"
+    }).
     otherwise({
       redirectTo: '/'
     });
@@ -33,7 +36,17 @@ myApp.config(['$routeProvider', '$locationProvider',
 ]);
 
 //Authentication Service
-//1.saving the token in local storage (Done)
+
+//Signin  :
+//1. Check if user is valid or not (check credentials)
+//2. if its a valid user , Generate a token from the API (backend)
+//3. set credentials globally for Successfull login in ( cookieStorage)
+//4. Pass the headers for authorization to the protected urls
+//5. Access the global varibles using g
+
+//
+
+
 //2. reading the token from local Storage
 //3. deleting the token from local Storage
 //4. calling the register and login api end points
@@ -41,102 +54,146 @@ myApp.config(['$routeProvider', '$locationProvider',
 //6. getting the details of the logged in user from the Token
 
 
-//Controller to handle Signin
-myApp.controller('signinController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
 
-  //reset login status
-  AuthService.ClearCredentials();
+      //Controller to handle Signin
+      myApp.controller('signinController', ['$scope', '$http', '$location', '$cookies', '$localStorage', 'AuthService', function($scope, $http, $location, $localStorage, $cookies, AuthService) {
 
-  //Call to signin
-  $scope.signin = function() {
-    $scope.credentials = {
-      email: $scope.email,
-      password: $scope.password
-    };
-    //call the authentication signin service
-    AuthService.Login($scope.credentials, function(result) {
-      if (result === true) {
-        console.log('Logged in Successful');
-        //redirect the user to profile page
-        $location.path('/profile');
-      } else {
-        console.log('Login Error');
-        $location.path('/signin');
-      }
-    });
-  };
-}]);
+        //reset login status
+        AuthService.ClearCredentials();
 
-//Controller to handle signup
-myApp.controller('signupController', ['$scope', 'AuthService', function($scope, AuthService) {
-  $scope.signup = function() {
-    //save the input from the signup form
-    $scope.credentials = {
-      email: $scope.email,
-      password: $scope.password
-    };
-    //call the authentication signup service
-    AuthService.Register($scope.credentials);
-  };
-}]);
+        //Call to signin
+        $scope.signin = function() {
 
-//Create Auth Factory
-myApp.service('AuthService', function($http, $location, $localStorage) {
-
-  //for login
-  this.Login = function(credentials, callback) {
-    console.log("Email: " + credentials.email, "Password: " + credentials.password);
-    $http
-      .post('/api/signin', credentials)
-      .then(function(response, status, headers, config) {
-          //If token is received
-        if (response.data.token) {
-
-          //save the user details and token in localStorage
-          $localStorage.currentUser = {
-            email: credentials.email,
-            token: response.data.token
+          //get data from login form
+          $scope.credentials = {
+            email: $scope.email,
+            password: $scope.password
           };
 
-          // add auth token to auth header for all requests made by the $http service
-          $http.defaults.headers.common.Authorization = 'Bearer ' + response.data.token;
+          //pass the data to the authentication service to check if the username and password is correct
+          AuthService.Login($scope.credentials, function(response) {
 
-          //execute callback with true for successful login
-          callback(true);
+            //If callback is returned true from api
+            if (response) {
+
+              console.log("Login Successful");
+              console.log(response);
+              // If authentication is Successfull
+              $location.path('/dashboard');
+            } else {
+              //If callback is returned without response
+
+              //Redirect back to signin
+              $location.path('/signin');
+
+              console.log(" Login Error ");
+            }
+          });
+        };
+      }]);
+
+
+      //Controller to handle signup
+      myApp.controller('signupController', ['$scope', 'AuthService', function($scope, AuthService) {
+        $scope.signup = function() {
+          //save the input from the signup form
+          $scope.credentials = {
+            email: $scope.email,
+            password: $scope.password
+          };
+          //call the authentication signup service
+          AuthService.Register($scope.credentials);
+        };
+      }]);
+
+      //Controller for logout
+      myApp.controller('logoutController', ['$scope', '$location', 'AuthService',
+        function($scope, $location, AuthService) {
+
+          $scope.logout = function() {
+            // call logout from service
+            AuthService.Logout()
+              .then(function() {
+                $location.path('/login');
+              });
+          };
         }
-          //If token is not recieved
-        else {
-          //execute callback for failed login for failed login
-          callback(false);
-        }
-      })
-      .catch(function activateError(error) {
-        console.log(error);
+      ]);
+
+      //Create Auth Factory
+      myApp.service('AuthService', function($http, $rootScope, $location, $cookies) {
+
+        //for login
+        this.Login = function(credentials, callback) {
+
+          //here we check if the username and password is correct
+
+          $http
+            .post('/api/signin', credentials)
+            .then(function(response) {
+              callback(response);
+            })
+            .catch(function activateError(error) {
+              console.log(error);
+            });
+        };
+
+
+        //for registration
+        this.Register = function(credentials) {
+          console.log("Email: " + credentials.email);
+          //send post request to our signup
+          $http
+            .post('/api/signup', credentials)
+            .then(function(response, status, headers, config) {
+              //save the user
+              console.log("User Saved Successfully");
+            });
+        };
+
+        //service to set credentials globally
+        this.SetCredentials = function(credentials) {
+
+          //save the details of the loggedin globally
+          $rootScope.globals = {
+            currentUser: {
+              email: credentials.email,
+              token: response.data.token
+            }
+          };
+
+          // set default auth header for http requests
+          $http.defaults.headers.common['Authorization'] = 'Basic ' + $rootScope.globals.currentUser.token;
+
+          //save the details in cookie Storage
+          // store user details in globals cookie that keeps user logged in for 1 week (or until they logout)
+          var cookieExp = new Date();
+          cookieExp.setDate(cookieExp.getDate() + 7);
+          $cookies.putObject('globals', $rootScope.globals, {
+            expires: cookieExp
+          });
+
+        };
+
+        //service for clearing credentials
+        this.ClearCredentials = function() {
+          $rootScope.globals = {};
+          $cookies.remove('globals');
+          $http.defaults.headers.common.Authorization = 'Basic';
+        };
+
+        //service for logging out
+        this.Logout = function() {
+          console.log('Logging out ...');
+          $http
+            .get('/api/logout')
+            .then(function(response, status, headers, config) {
+              //save the user
+              $rootScope.globals = {};
+              $cookies.remove('globals');
+              $http.defaults.headers.common.Authorization = 'Basic';
+              console.log("status :" + response.data.status);
+            });
+        };
+
       });
-  };
-
-  //for registration
-  this.Register = function(credentials) {
-    console.log("Email: " + credentials.email, "Password: " + credentials.password);
-    //send post request to our signup
-    $http
-      .post('/api/signup', credentials)
-      .then(function(response, status, headers, config) {
-        //save the user
-        console.log("Status :" + response.data.status);
-      });
-  };
-
-  //for clearing credentials
-  this.ClearCredentials = function() {
-    $localStorage.currentUser = '';
-  };
-
-  //to check if the user is logged in
-  this.isLoggedIn = function() {
-
-    //if the user is logged in access
-
-  }
-
-});

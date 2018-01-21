@@ -1,5 +1,5 @@
 from myapp import app
-from flask import request, jsonify, g, abort, render_template, session
+from flask import request, jsonify, g, abort, redirect, url_for, render_template, make_response
 from myapp.models import db, User, Token
 from functools import wraps
 import bcrypt
@@ -10,8 +10,7 @@ import bcrypt
 def requires_authorization(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        received_token = request.headers.get('token')
-        print ('received_token', received_token)
+        received_token = request.cookies.get('token')
         if received_token:
             result = User.query.join(Token, User.id == Token.user_id).filter(
                 Token.value == received_token).first()
@@ -34,14 +33,20 @@ def index(path):
 @app.route('/profile', methods=['GET'])
 @requires_authorization
 def profile():
-    return jsonify({'data': {'user': {'id': g.user.id, 'email': g.user.email}}})
+    return render_template('index.html')
 
 
-@app.route('/created', methods=['GET'])
+@app.route('/dashboard', methods=['GET'])
+@requires_authorization
+def dashboard():
+    return render_template('index.html')
+
+
+@app.route('/user', methods=['GET'])
 @requires_authorization
 def created():
     print (g.user.__dict__)
-    return jsonify({'data': g.user.created_at})
+    return jsonify({'created_at': g.user.created_at,'email' : g.user.email})
 
 # Login API
 
@@ -54,17 +59,18 @@ def signin():
     if user:
         saved_hashed_password = user.password
         if bcrypt.checkpw(password.encode('utf8'), saved_hashed_password):
-            status = 'Login Successful'
-            session['logged_in'] = True
             token = Token(user_id=user.id)
+            status = True
             db.session.add(token)
             db.session.commit()
-            return jsonify({'status': status, 'token': token.value})
+            response = make_response()
+            response.set_cookie('token', token.value)
+            return response
         else:
-            status = 'Password Incorrect'
+            status = False
     else:
         status = 'Login Error, User Do Not Exist'
-    return jsonify({'success': status})
+    return jsonify({'status': status})
 
 # Register API
 
@@ -90,6 +96,7 @@ def signup():
 
 
 @app.route('/api/logout')
+@requires_authorization
 def logout():
-    session.pop('logged_in', None)
-    return jsonify({'result': 'success'})
+    status = 'Successfully Logged out'
+    return jsonify({'status': status})

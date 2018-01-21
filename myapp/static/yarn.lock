@@ -2,6 +2,10 @@
 # yarn lockfile v1
 
 
+angular-cookies@^1.6.8:
+  version "1.6.8"
+  resolved "https://registry.yarnpkg.com/angular-cookies/-/angular-cookies-1.6.8.tgz#97b559ed797dd6545e4aafd14ba7a42dd3c6b40f"
+
 angular-route@1.6.8:
   version "1.6.8"
   resolved "https://registry.yarnpkg.com/angular-route/-/angular-route-1.6.8.tgz#82ace773e7b232bf77768370760244a8caab5d36"
