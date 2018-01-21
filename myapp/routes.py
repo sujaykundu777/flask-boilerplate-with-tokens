@@ -18,8 +18,10 @@ def requires_authorization(f):
                 g.user = result
                 return f(*args, **kwargs)
             else:
+                return redirect(url_for("index"))
                 abort(401)
         else:
+            return redirect(url_for("index"))
             abort(401)
     return decorated
 
@@ -46,7 +48,7 @@ def dashboard():
 @requires_authorization
 def created():
     print (g.user.__dict__)
-    return jsonify({'created_at': g.user.created_at,'email' : g.user.email})
+    return jsonify({'created_at': g.user.created_at, 'email': g.user.email})
 
 # Login API
 
@@ -67,7 +69,7 @@ def signin():
             response.set_cookie('token', token.value)
             return response
         else:
-            status = False
+            return jsonify({'status': 'User Password do not match'})
     else:
         status = 'Login Error, User Do Not Exist'
     return jsonify({'status': status})
@@ -95,8 +97,9 @@ def signup():
     return jsonify({'status': status})
 
 
-@app.route('/api/logout')
+@app.route('/logout', methods=['GET'])
 @requires_authorization
 def logout():
-    status = 'Successfully Logged out'
-    return jsonify({'status': status})
+    response = make_response()
+    response.set_cookie('token', "", expires=0)
+    return response

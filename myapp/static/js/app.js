@@ -25,8 +25,9 @@ myApp.config(['$routeProvider', '$locationProvider',
     when('/profile', {
       templateUrl: 'static/partials/user/profile.html'
     }).
-    when('/logout', {
-      controller: "logoutController"
+    when('/logout',{
+      templateUrl: '',
+      controller: "logoutCtrl"
     }).
     otherwise({
       redirectTo: '/'
@@ -34,6 +35,8 @@ myApp.config(['$routeProvider', '$locationProvider',
     $locationProvider.html5Mode(true);
   }
 ]);
+
+
 
 //Authentication Service
 
@@ -75,24 +78,29 @@ myApp.config(['$routeProvider', '$locationProvider',
 
             //If callback is returned true from api
             if (response) {
-
               console.log("Login Successful");
               console.log(response);
               // If authentication is Successfull
               $location.path('/dashboard');
-            } else {
+            }
+            else {
               //If callback is returned without response
-
               //Redirect back to signin
               $location.path('/signin');
-
               console.log(" Login Error ");
             }
           });
         };
       }]);
 
+        myApp.controller('logoutCtrl', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService){
+          $scope.logout = function(){
 
+                AuthService.ClearCredentials();
+
+          };
+              $location.path('/');
+        }]);
       //Controller to handle signup
       myApp.controller('signupController', ['$scope', 'AuthService', function($scope, AuthService) {
         $scope.signup = function() {
@@ -106,19 +114,7 @@ myApp.config(['$routeProvider', '$locationProvider',
         };
       }]);
 
-      //Controller for logout
-      myApp.controller('logoutController', ['$scope', '$location', 'AuthService',
-        function($scope, $location, AuthService) {
 
-          $scope.logout = function() {
-            // call logout from service
-            AuthService.Logout()
-              .then(function() {
-                $location.path('/login');
-              });
-          };
-        }
-      ]);
 
       //Create Auth Factory
       myApp.service('AuthService', function($http, $rootScope, $location, $cookies) {
@@ -155,10 +151,10 @@ myApp.config(['$routeProvider', '$locationProvider',
         this.SetCredentials = function(credentials) {
 
           //save the details of the loggedin globally
+
           $rootScope.globals = {
             currentUser: {
-              email: credentials.email,
-              token: response.data.token
+              email: credentials.email
             }
           };
 
@@ -177,23 +173,12 @@ myApp.config(['$routeProvider', '$locationProvider',
 
         //service for clearing credentials
         this.ClearCredentials = function() {
+
           $rootScope.globals = {};
           $cookies.remove('globals');
+          $cookies.remove('token');
           $http.defaults.headers.common.Authorization = 'Basic';
-        };
-
-        //service for logging out
-        this.Logout = function() {
-          console.log('Logging out ...');
-          $http
-            .get('/api/logout')
-            .then(function(response, status, headers, config) {
-              //save the user
-              $rootScope.globals = {};
-              $cookies.remove('globals');
-              $http.defaults.headers.common.Authorization = 'Basic';
-              console.log("status :" + response.data.status);
-            });
+           console.log('cleared credentials');
         };
 
       });
