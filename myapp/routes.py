@@ -1,8 +1,9 @@
 from myapp import app
-from flask import request, jsonify, g, abort, redirect, url_for, render_template, make_response
+from flask import request, jsonify, g, abort, redirect, url_for, render_template, make_response, Response
 from myapp.models import db, User, Token
 from functools import wraps
 import bcrypt
+import json
 
 # Check for authorization headers
 
@@ -11,30 +12,30 @@ def requires_authorization(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         received_token = request.cookies.get('token')
+        print(received_token)
         if received_token:
+            #check if received token == token.value s
             result = User.query.join(Token, User.id == Token.user_id).filter(
                 Token.value == received_token).first()
             if result is not None:
+                # Give Access To Page
                 g.user = result
                 return f(*args, **kwargs)
             else:
-                return redirect(url_for("index"))
+                # Unauthorized Access
                 abort(401)
         else:
-            return redirect(url_for("index"))
             abort(401)
     return decorated
 
-
-@app.route('/', defaults={'path': ''},  methods=['GET', 'POST'])
-@app.route('/<path:path>', methods=['GET', 'POST'])
-def index(path):
+@app.route('/', methods=['GET','POST'])
+def index():
     return render_template('index.html')
-
 
 @app.route('/profile', methods=['GET'])
 @requires_authorization
 def profile():
+    print (g.user.__dict__)
     return render_template('index.html')
 
 
@@ -55,33 +56,42 @@ def created():
 
 @app.route('/api/signin', methods=['POST'])
 def signin():
+    # get the user data
     json_data = request.json
+    # fetch the user
     user = User.query.filter_by(email=json_data['email']).first()
-    password = json_data['password']
     if user:
+        password = json_data['password']
         saved_hashed_password = user.password
         if bcrypt.checkpw(password.encode('utf8'), saved_hashed_password):
             token = Token(user_id=user.id)
-            status = True
-            db.session.add(token)
-            db.session.commit()
-            response = make_response()
-            response.set_cookie('token', token.value)
-            return response
+            if token:
+                db.session.add(token)
+                db.session.commit()
+                responseObj = {
+                    'status': 'success',
+                    'message': 'Successfully logged in'
+                }
+                response = Response(json.dumps(
+                    responseObj, indent=2), status=200, mimetype=u'application/json')
+                response.set_cookie('token', token.value)
+                return response
+            else:
+                responseObject = {
+                    'status': 'failure',
+                    'message': 'Token Not Received',
+                }
+                return make_response(jsonify(responseObject)), 404
         else:
-            return jsonify({'status': 'User Password do not match'})
+            return make_response(jsonify({'status': 'User Password do not match'})), 404
     else:
-        status = 'Login Error, User Do Not Exist'
-    return jsonify({'status': status})
+        return make_response(jsonify({'status': 'User Does Not Exist'})), 404
 
 # Register API
 
 
 @app.route('/api/signup', methods=['POST'])
 def signup():
-    print ('data', request.data)
-    print ('args', request.args)
-    print ('json', request.json)
     email = request.json.get('email')
     password = request.json.get('password')
     # Encrypt the password and save it to database
@@ -90,16 +100,30 @@ def signup():
     try:
         db.session.add(user)
         db.session.commit()
-        status = 'User Registered'
-    except Exception as e:
-        status = 'This user is already registered'
-        return jsonify({'error': str(e)})
-    return jsonify({'status': status})
+        responseObj = {
+            'status': 'success',
+            'message': 'User Successfully Registered'
+        }
+        return make_response(jsonify(responseObj)), 200
+    except:
+        responseObj = {
+            'status': 'failure',
+            'message': 'User Already Exists'
+        }
+        return make_response(jsonify(responseObj)), 404
 
 
-@app.route('/logout', methods=['GET'])
+# Signout
+
+@app.route('/signout', methods=['GET'])
 @requires_authorization
-def logout():
-    response = make_response()
-    response.set_cookie('token', "", expires=0)
+def signout():
+    responseObj = {
+        'status': 'success',
+        'message': 'Successfully logged out'
+    }
+    # redirect_to_index = redirect('/')
+    # response = make_response(redirect_to_index )
+    response = Response(json.dumps(responseObj, indent=2), status=200, mimetype=u'application/json')
+    response.set_cookie('token',value=" ")
     return response
